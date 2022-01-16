@@ -1,0 +1,17 @@
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+  <property name="glmapper-name" value="glmapper-demo"/>
+  <property name="pattern"
+    value="%d{MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}[%line] - %msg %n"/>
+  <property name="pattern-color"
+    value="%yellow(%d{MM-dd HH:mm:ss.SSS}) [%thread] %highlight(%-5level) %green(%logger{50}[%line]) - %highlight(%msg) %n"/>
+  <property name="LOG_HOME" value="logs"/>
+  <contextName>${glmapper-name}</contextName>
+  <appender name="CONSOLE-WITH-COLOR" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <pattern>${pattern-color}</pattern>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="CONSOLE-WITH-COLOR"/>
+  </root>
+</configuration>
