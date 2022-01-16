@@ -82,6 +82,4 @@ public class PhotoService {
     dstFile.setLastModified(photo.lastModified());
     log.info("copy {} to {}", photo.getCanonicalPath(), dstFile.getCanonicalPath());
   }
-
-
 }
