@@ -18,4 +18,9 @@ class PhotoServiceTest {
     photoService.photoManager(new File("/Volumes/photo/photo/19xx"),
         new File("/Users/zhaoguangjian/tmp/output"));
   }
+
+  @Test
+  void findSameFile() {
+    photoService.findSameFile(new File("/Volumes/photo/photo"));
+  }
 }
