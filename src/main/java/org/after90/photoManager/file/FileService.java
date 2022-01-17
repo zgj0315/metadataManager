@@ -22,7 +22,8 @@ public class FileService {
       public boolean accept(File dir, String name) {
         var isDir = new File(dir, name).isDirectory();
         var isFile = new File(dir, name).isFile();
-        var isAccept = isDir || isFile;
+        var isHide = name.toLowerCase().startsWith(".");
+        var isAccept = (isDir || isFile) && !isHide;
         if (!isAccept) {
           log.info("ignore file: {}", dir + "/" + name);
         }
@@ -34,22 +35,27 @@ public class FileService {
         findDuplicateFile(file);
       }
       if (file.isFile()) {
-        try {
-          var md5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(file));
-          var path = file.getAbsolutePath();
-          var fileDOList = fileRepository.findByMd5(md5);
-          if (!fileDOList.isEmpty()) {
-            log.warn("duplicate file: {}", path);
-            fileDOList.forEach(_file -> {
-              log.warn("file: {}", _file.getPath());
-            });
+        var length = file.length();
+        if (length > 0) {
+          try {
+            var md5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(file));
+            var path = file.getAbsolutePath();
+            var fileDOList = fileRepository.findByMd5(md5);
+            if (!fileDOList.isEmpty()) {
+              log.warn("duplicate file: {}", path);
+              fileDOList.forEach(_file -> {
+                log.warn("duplicate file: {}", _file.getPath());
+              });
+              log.info("");
+            }
+            FileDO fileDO = new FileDO();
+            fileDO.setPath(path);
+            fileDO.setMd5(md5);
+            fileDO.setLength(length);
+            fileRepository.save(fileDO);
+          } catch (Exception e) {
+            log.error("read file err", e);
           }
-          FileDO fileDO = new FileDO();
-          fileDO.setPath(path);
-          fileDO.setMd5(md5);
-          fileRepository.save(fileDO);
-        } catch (Exception e) {
-          log.error("read file err", e);
         }
       }
     }

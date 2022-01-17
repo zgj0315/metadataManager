@@ -15,7 +15,7 @@ class PhotoServiceTest {
   @Test
   @Disabled
   void photoManager() {
-    photoService.photoManager(new File("/Volumes/photo/photo/19xx"),
+    photoService.photoManager(new File("/Volumes/photo/photo/2013"),
         new File("/Users/zhaoguangjian/tmp/output"));
   }
 

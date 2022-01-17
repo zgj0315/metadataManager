@@ -13,6 +13,6 @@ class FileServiceTest {
 
   @Test
   void findDuplicateFile() {
-    fileService.findDuplicateFile(new File("/Users/zhaoguangjian/SynologyDrive"));
+    fileService.findDuplicateFile(new File("/Users/zhaoguangjian/SynologyDrive/cyberkl"));
   }
 }

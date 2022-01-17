@@ -14,7 +14,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Data
-@Table(name = "tbl_file", uniqueConstraints = {@UniqueConstraint(columnNames = {"path", "md5"})})
+@Table(name = "tbl_file", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"path", "md5", "length"})})
 public class FileDO {
 
   @Id
@@ -23,6 +24,7 @@ public class FileDO {
 
   private String path;
   private String md5;
+  private Long length;
 
   @CreationTimestamp
   @Column(nullable = false, updatable = false)

@@ -1,12 +1,20 @@
 package org.after90.photoManager.service;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.jpeg.JpegMetadataReader;
+import com.drew.imaging.psd.PsdMetadataReader;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,9 +49,9 @@ public class PhotoService {
       @Override
       public boolean accept(File dir, String name) {
         var isDir = new File(dir, name).isDirectory();
-        var isJpeg = name.toLowerCase().endsWith(".jpeg");
+        var isCr2 = name.toLowerCase().endsWith(".cr2");
         var isJpg = name.toLowerCase().endsWith(".jpg");
-        var isAccept = isDir || isJpeg || isJpg;
+        var isAccept = isDir || isCr2 || isJpg;
         if (!isAccept) {
           log.info("ignore file: {}", dir + "/" + name);
         }
@@ -53,7 +61,24 @@ public class PhotoService {
     for (File file : listFiles) {
       if (file.isFile()) {
         try {
-          copyPhoto(file, dstPath);
+          // copyPhoto(file, dstPath);
+          var fileName = file.getCanonicalPath().toLowerCase();
+          log.warn("fileName: {}", fileName);
+          Metadata metadata = ImageMetadataReader.readMetadata(file);
+          for (Directory directory : metadata.getDirectories()) {
+            for (Tag tag : directory.getTags()) {
+              if ("Date/Time Original".equals(tag.getTagName())) {
+                log.info("name: {}, desc: {}, dirName: {}", tag.getTagName(), tag.getDescription(),
+                    tag.getDirectoryName());
+              } else if ("Date/Time".equals(tag.getTagName())) {
+                log.info("name: {}, desc: {}, dirName: {}", tag.getTagName(), tag.getDescription(),
+                    tag.getDirectoryName());
+              } else {
+//                log.info("name: {}, desc: {}, dirName: {}", tag.getTagName(), tag.getDescription(),
+//                    tag.getDirectoryName());
+              }
+            }
+          }
         } catch (Exception e) {
           log.error("copy err", e);
         }
