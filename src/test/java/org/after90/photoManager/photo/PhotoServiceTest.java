@@ -1,4 +1,4 @@
-package org.after90.photoManager.service;
+package org.after90.photoManager.photo;
 
 import java.io.File;
 import org.junit.jupiter.api.Disabled;
@@ -15,12 +15,22 @@ class PhotoServiceTest {
   @Test
   @Disabled
   void photoManager() {
-    photoService.photoManager(new File("/Volumes/photo/photo/2013"),
-        new File("/Users/zhaoguangjian/tmp/output"));
+    photoService.photoManager(new File("/Volumes/photo/photo"),
+        new File("/Volumes/photo/original"));
   }
 
   @Test
+  @Disabled
   void findSameFile() {
     photoService.findSameFile(new File("/Volumes/photo/photo"));
+  }
+
+  @Test
+  @Disabled
+  void copyFile() throws Exception {
+    File srcFile = new File("/Users/zhaoguangjian/tmp/copyFile/src/abc.txt");
+    File dstFile = new File("/Users/zhaoguangjian/tmp/copyFile/dst/abc.txt");
+
+    photoService.copyFile(srcFile, dstFile);
   }
 }

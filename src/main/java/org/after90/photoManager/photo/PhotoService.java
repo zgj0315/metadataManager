@@ -1,8 +1,6 @@
-package org.after90.photoManager.service;
+package org.after90.photoManager.photo;
 
 import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.jpeg.JpegMetadataReader;
-import com.drew.imaging.psd.PsdMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.Tag;
@@ -10,17 +8,13 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.FileCopyUtils;
-import org.springframework.util.FileSystemUtils;
 
 @Service
 @Slf4j
@@ -30,6 +24,12 @@ public class PhotoService {
   private SimpleDateFormat formatYearMMdd = new SimpleDateFormat("yyyy-MM-dd");
   private Map<String, String> photoMap = new HashMap();
 
+  /**
+   * 按照图片的创建时间，分类存储
+   *
+   * @param srcPath 要处理的图片目录
+   * @param dstPath 分类存储的目标目录
+   */
   public void photoManager(File srcPath, File dstPath) {
     if (!srcPath.exists()) {
       log.warn("srcPath not exists");
@@ -50,8 +50,7 @@ public class PhotoService {
       public boolean accept(File dir, String name) {
         var isDir = new File(dir, name).isDirectory();
         var isCr2 = name.toLowerCase().endsWith(".cr2");
-        var isJpg = name.toLowerCase().endsWith(".jpg");
-        var isAccept = isDir || isCr2 || isJpg;
+        var isAccept = isDir || isCr2;
         if (!isAccept) {
           log.info("ignore file: {}", dir + "/" + name);
         }
@@ -61,64 +60,77 @@ public class PhotoService {
     for (File file : listFiles) {
       if (file.isFile()) {
         try {
-          // copyPhoto(file, dstPath);
-          var fileName = file.getCanonicalPath().toLowerCase();
-          log.warn("fileName: {}", fileName);
+          var fileName = file.getCanonicalPath();
+          // log.warn("fileName: {}", fileName);
           Metadata metadata = ImageMetadataReader.readMetadata(file);
           for (Directory directory : metadata.getDirectories()) {
             for (Tag tag : directory.getTags()) {
               if ("Date/Time Original".equals(tag.getTagName())) {
-                log.info("name: {}, desc: {}, dirName: {}", tag.getTagName(), tag.getDescription(),
-                    tag.getDirectoryName());
-              } else if ("Date/Time".equals(tag.getTagName())) {
-                log.info("name: {}, desc: {}, dirName: {}", tag.getTagName(), tag.getDescription(),
-                    tag.getDirectoryName());
-              } else {
-//                log.info("name: {}, desc: {}, dirName: {}", tag.getTagName(), tag.getDescription(),
-//                    tag.getDirectoryName());
+                var date = convertDate(tag.getDescription());
+                File dstFile = new File(
+                    dstPath.getPath() + File.separator + date.getYear() + File.separator
+                        + date.getYear() + date.getMonth() + File.separator + date.getYear()
+                        + date.getMonth()
+                        + date.getDay() + File.separator + file.getName());
+                copyFile(file, dstFile);
               }
             }
           }
         } catch (Exception e) {
-          log.error("copy err", e);
+          log.error("ImageMetadataReader err", e);
         }
-      }
-      if (file.isDirectory()) {
+      } else if (file.isDirectory()) {
         photoManager(file, dstPath);
       }
     }
   }
 
-  private void copyPhoto(File photo, File dstPath) throws Exception {
-    var md5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(photo));
-    if (photoMap.containsKey(md5)) {
-      log.warn("has file: {}, md5: {}", photoMap.get(md5), md5);
-    } else {
-      photoMap.put(md5, photo.getCanonicalPath());
+
+  private DateDTO convertDate(String desc) throws Exception {
+    // 2013:01:20 16:30:04
+    var dateList = ((desc.split(" "))[0]).split(":");
+    return new DateDTO(dateList[0], dateList[1], dateList[2]);
+  }
+
+  /**
+   * copy文件到目标文件。如果存在，且md5一样，跳过；如果重名，写一个新的
+   *
+   * @param srcFile
+   * @param dstFile
+   * @throws Exception
+   */
+  public void copyFile(File srcFile, File dstFile) throws Exception {
+    if (!srcFile.exists()) {
+      log.warn("srcFile not exist, file: {}", srcFile.getAbsolutePath());
+      return;
     }
+    var dstPath = new File(dstFile.getParent());
     if (!dstPath.exists()) {
       dstPath.mkdirs();
       log.info("mkdirs: {}", dstPath.getCanonicalPath());
     }
-    var lastModified = new Date(photo.lastModified());
-    var year = formatYear.format(lastModified);
-    var yearMMdd = formatYearMMdd.format(lastModified);
-    var dstPathYearMMdd = new File(dstPath.getCanonicalPath() + "/" + year + "/" + yearMMdd);
-    if (!dstPathYearMMdd.exists()) {
-      dstPathYearMMdd.mkdirs();
-      log.info("mkdirs: {}", dstPathYearMMdd.getCanonicalPath());
-    }
-    var dstFile = new File(dstPathYearMMdd.getCanonicalPath() + "/" + photo.getName());
-    if (dstFile.exists() && dstFile.isFile()) {
-      if (photo.lastModified() == dstFile.lastModified()) {
-        // 文件相同，跳过
-        log.info("ignore same lastModified file: {}", photo.getCanonicalPath());
+    // 目标文件存在的情况
+    if (dstFile.exists()) {
+      var srcMd5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(srcFile));
+      var dstMd5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(dstFile));
+      if (srcMd5.equals(dstMd5) && srcFile.length() == dstFile.length()) {
+        log.warn("srcFile is same with dstFile, srcFile: {}", srcFile.getAbsolutePath());
         return;
+      } else {
+        while (true) {
+          var dstFileNewStr =
+              dstFile.getAbsolutePath() + "_" + ((Double) (Math.random() * 1000)).intValue();
+          var dstFileNew = new File(dstFileNewStr);
+          if (!dstFileNew.exists()) {
+            dstFile = dstFileNew;
+            break;
+          }
+        }
       }
     }
-    FileCopyUtils.copy(photo, dstFile);
-    dstFile.setLastModified(photo.lastModified());
-    log.info("copy {} to {}", photo.getCanonicalPath(), dstFile.getCanonicalPath());
+    FileCopyUtils.copy(srcFile, dstFile);
+    dstFile.setLastModified(srcFile.lastModified());
+    log.info("copy {} to {}", srcFile.getCanonicalPath(), dstFile.getCanonicalPath());
   }
 
   private Map<String, List<String>> fileMap = new HashMap();
