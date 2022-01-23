@@ -15,8 +15,15 @@ class PhotoServiceTest {
   @Test
   @Disabled
   void photoManager() {
-    photoService.photoManager(new File("/Volumes/photo/photo"),
-        new File("/Volumes/photo/original"));
+    // 整理RAW
+    // photoService.photoManager(new File("/Volumes/photo/photo"), ".cr2",
+    //    new File("/Volumes/photo/original"));
+    // 整理JPG
+    // photoService.photoManager(new File("/Volumes/photo/photo"), ".jpg",
+    //    new File("/Volumes/photo/export"));
+    photoService.photoManager(new File("/Volumes/homes"), ".jpg",
+        new File("/Volumes/photo/export"));
+
   }
 
   @Test

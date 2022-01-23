@@ -30,7 +30,7 @@ public class PhotoService {
    * @param srcPath 要处理的图片目录
    * @param dstPath 分类存储的目标目录
    */
-  public void photoManager(File srcPath, File dstPath) {
+  public void photoManager(File srcPath, String endWith, File dstPath) {
     if (!srcPath.exists()) {
       log.warn("srcPath not exists");
       return;
@@ -49,7 +49,7 @@ public class PhotoService {
       @Override
       public boolean accept(File dir, String name) {
         var isDir = new File(dir, name).isDirectory();
-        var isCr2 = name.toLowerCase().endsWith(".cr2");
+        var isCr2 = name.toLowerCase().endsWith(endWith);
         var isAccept = isDir || isCr2;
         if (!isAccept) {
           log.info("ignore file: {}", dir + "/" + name);
@@ -80,7 +80,7 @@ public class PhotoService {
           log.error("ImageMetadataReader err", e);
         }
       } else if (file.isDirectory()) {
-        photoManager(file, dstPath);
+        photoManager(file, endWith, dstPath);
       }
     }
   }
