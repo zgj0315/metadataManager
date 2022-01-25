@@ -7,10 +7,17 @@ import com.drew.metadata.Tag;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -23,6 +30,7 @@ public class PhotoService {
   private SimpleDateFormat formatYear = new SimpleDateFormat("yyyy");
   private SimpleDateFormat formatYearMMdd = new SimpleDateFormat("yyyy-MM-dd");
   private Map<String, String> photoMap = new HashMap();
+
 
   /**
    * 按照图片的创建时间，分类存储
@@ -60,21 +68,24 @@ public class PhotoService {
     for (File file : listFiles) {
       if (file.isFile()) {
         try {
-          var fileName = file.getCanonicalPath();
-          // log.warn("fileName: {}", fileName);
-          Metadata metadata = ImageMetadataReader.readMetadata(file);
-          for (Directory directory : metadata.getDirectories()) {
-            for (Tag tag : directory.getTags()) {
-              if ("Date/Time Original".equals(tag.getTagName())) {
-                var date = convertDate(tag.getDescription());
-                File dstFile = new File(
-                    dstPath.getPath() + File.separator + date.getYear() + File.separator
-                        + date.getYear() + date.getMonth() + File.separator + date.getYear()
-                        + date.getMonth()
-                        + date.getDay() + File.separator + file.getName());
-                copyFile(file, dstFile);
-              }
+          var zonedDateTimeOptional = getCreateDate(file);
+          if (zonedDateTimeOptional.isPresent()) {
+            String year = String.valueOf(zonedDateTimeOptional.get().getYear());
+            String month = String.valueOf(zonedDateTimeOptional.get().getMonthValue());
+            if (month.length() == 1) {
+              month = "0" + month;
             }
+            String day = String.valueOf(zonedDateTimeOptional.get().getDayOfMonth());
+            if (day.length() == 1) {
+              day = "0" + day;
+            }
+            File dstFile = new File(
+                dstPath.getPath() + File.separator + year
+                    + File.separator
+                    + year + month + File.separator + year
+                    + month
+                    + day + File.separator + file.getName());
+            copyFile(file, dstFile);
           }
         } catch (Exception e) {
           log.error("ImageMetadataReader err", e);
@@ -83,13 +94,6 @@ public class PhotoService {
         photoManager(file, endWith, dstPath);
       }
     }
-  }
-
-
-  private DateDTO convertDate(String desc) throws Exception {
-    // 2013:01:20 16:30:04
-    var dateList = ((desc.split(" "))[0]).split(":");
-    return new DateDTO(dateList[0], dateList[1], dateList[2]);
   }
 
   /**
@@ -129,7 +133,6 @@ public class PhotoService {
       }
     }
     FileCopyUtils.copy(srcFile, dstFile);
-    dstFile.setLastModified(srcFile.lastModified());
     log.info("copy {} to {}", srcFile.getCanonicalPath(), dstFile.getCanonicalPath());
   }
 
@@ -176,5 +179,47 @@ public class PhotoService {
         findSameFile(file);
       }
     }
+  }
+
+  // 2022:01:15 10:55:09
+  private DateTimeFormatter dtfA = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
+  // Tue Jan 25 16:35:27 +08:00 2022
+  private DateTimeFormatter dtfB = DateTimeFormatter.ofPattern("EEE LLL dd HH:mm:ss zzz yyyy");
+
+  public Optional<ZonedDateTime> getCreateDate(File file) throws Exception {
+    if (file.exists()) {
+      var fileNameLowerCase = file.getAbsolutePath().toLowerCase();
+      if (fileNameLowerCase.endsWith(".jpg") || fileNameLowerCase.endsWith(".png")
+          || fileNameLowerCase.endsWith(".heic")) {
+        Metadata metadata = ImageMetadataReader.readMetadata(file);
+        for (Directory directory : metadata.getDirectories()) {
+          if ("Exif SubIFD".equals(directory.getName())) {
+            var desc = directory.getDescription(36867);
+            if (desc != null) {
+              LocalDateTime localDateTime = LocalDateTime.parse(desc, dtfA);
+              ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
+              return Optional.of(zonedDateTime);
+            }
+          }
+        }
+      } else if (fileNameLowerCase.endsWith(".mov") || fileNameLowerCase.endsWith(".mp4")) {
+        Metadata metadata = ImageMetadataReader.readMetadata(file);
+        for (Directory directory : metadata.getDirectories()) {
+          if ("QuickTime".equals(directory.getName()) || "MP4".equals(directory.getName())) {
+            var desc = directory.getDescription(256);
+            if (desc != null) {
+              ZonedDateTime zonedDateTime = ZonedDateTime.parse(desc,
+                  dtfB);
+              return Optional.of(zonedDateTime);
+            }
+          }
+        }
+      } else {
+        log.warn("file endWith not match: {}", file.getAbsolutePath());
+      }
+    } else {
+      log.warn("file not exist, file: {}", file.getAbsolutePath());
+    }
+    return Optional.empty();
   }
 }
