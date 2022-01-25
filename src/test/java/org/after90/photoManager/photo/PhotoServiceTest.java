@@ -34,10 +34,13 @@ class PhotoServiceTest {
     //    new File("/Volumes/photo/export"));
     // photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".jpg",
     //    new File("/Volumes/photo/export"));
-    photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".mp4",
-        new File("/Volumes/video/export"));
-    photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".mov",
-        new File("/Volumes/video/export"));
+    photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".jpeg",
+        new File("/Volumes/photo/export"));
+    // photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".mp4",
+    //    new File("/Volumes/video/export"));
+    // photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".mov",
+    //    new File("/Volumes/video/export"));
+
   }
 
   @Test

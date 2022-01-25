@@ -60,7 +60,7 @@ public class PhotoService {
         var isCr2 = name.toLowerCase().endsWith(endWith);
         var isAccept = isDir || isCr2;
         if (!isAccept) {
-          log.info("ignore file: {}", dir + "/" + name);
+          // log.info("ignore file: {}", dir + "/" + name);
         }
         return isAccept;
       }
@@ -190,7 +190,7 @@ public class PhotoService {
     if (file.exists()) {
       var fileNameLowerCase = file.getAbsolutePath().toLowerCase();
       if (fileNameLowerCase.endsWith(".jpg") || fileNameLowerCase.endsWith(".png")
-          || fileNameLowerCase.endsWith(".heic")) {
+          || fileNameLowerCase.endsWith(".heic") || fileNameLowerCase.endsWith(".jpeg")) {
         Metadata metadata = ImageMetadataReader.readMetadata(file);
         for (Directory directory : metadata.getDirectories()) {
           if ("Exif SubIFD".equals(directory.getName())) {
