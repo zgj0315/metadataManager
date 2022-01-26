@@ -72,7 +72,8 @@ public class FileService {
       var fileNameLowerCase = file.getAbsolutePath().toLowerCase();
       try {
         if (fileNameLowerCase.endsWith(".jpg") || fileNameLowerCase.endsWith(".png")
-            || fileNameLowerCase.endsWith(".heic") || fileNameLowerCase.endsWith(".jpeg")) {
+            || fileNameLowerCase.endsWith(".heic") || fileNameLowerCase.endsWith(".jpeg")
+            || fileNameLowerCase.endsWith(".cr2")) {
           Metadata metadata = ImageMetadataReader.readMetadata(file);
           for (Directory directory : metadata.getDirectories()) {
             if ("Exif SubIFD".equals(directory.getName())) {

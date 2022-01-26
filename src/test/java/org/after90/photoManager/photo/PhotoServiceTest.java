@@ -17,6 +17,8 @@ class PhotoServiceTest {
   @Test
   @Disabled
   void photoManager() throws Exception {
+    // photoService.photoManager(new File("/Volumes/photo/photo"), ".cr2",
+    //    new File("/Volumes/photo/export"));
     // photoService.photoManager(new File("/Users/zhaoguangjian/tmp/input"), ".jpg,.jpeg",
     //    new File("/Users/zhaoguangjian/tmp/output"));
     // photoService.photoManager(new File("/Users/zhaoguangjian/tmp/metaData"), ".jpg,.jpeg",
