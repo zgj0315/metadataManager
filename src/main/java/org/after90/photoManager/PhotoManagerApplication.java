@@ -1,6 +1,5 @@
 package org.after90.photoManager;
 
-import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import org.after90.photoManager.utils.ParaUtils;
 import org.springframework.boot.SpringApplication;
@@ -18,8 +17,14 @@ public class PhotoManagerApplication {
         System.getProperty("java.vendor"), System.getProperty("java.home"));
     log.info("Java vm version: {}, vendor: {}, name: {}", System.getProperty("java.vm.version"),
         System.getProperty("java.vm.vendor"), System.getProperty("java.vm.name"));
-    if (args.length > 0) {
-      log.info("Application args list: {}", Arrays.toString(args));
+    if (args.length == 4 || args.length == 2) {
+      // run
+    } else {
+      log.info("\n\n\nargs illegal, input like this:"
+          + "\neg: java -jar photoManager-1.0.jar copy /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
+          + "\neg: java -jar photoManager-1.0.jar delete /Users/zhaoguangjian/tmp/output"
+          + "\n\n\n");
+      return;
     }
     ParaUtils.TESTING = false;
     SpringApplication springApplication = new SpringApplication(PhotoManagerApplication.class);

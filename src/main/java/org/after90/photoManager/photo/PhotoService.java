@@ -1,24 +1,14 @@
 package org.after90.photoManager.photo;
 
-import com.drew.imaging.ImageMetadataReader;
-import com.drew.metadata.Directory;
-import com.drew.metadata.Metadata;
-import com.drew.metadata.Tag;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.after90.photoManager.file.FileService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.FileCopyUtils;
@@ -27,18 +17,17 @@ import org.springframework.util.FileCopyUtils;
 @Slf4j
 public class PhotoService {
 
-  private SimpleDateFormat formatYear = new SimpleDateFormat("yyyy");
-  private SimpleDateFormat formatYearMMdd = new SimpleDateFormat("yyyy-MM-dd");
-  private Map<String, String> photoMap = new HashMap();
-
+  @Autowired
+  private FileService fileService;
 
   /**
    * 按照图片的创建时间，分类存储
    *
-   * @param srcPath 要处理的图片目录
-   * @param dstPath 分类存储的目标目录
+   * @param srcPath  扫描目录
+   * @param endWiths 文件后缀，逗号分隔
+   * @param dstPath  输出目录
    */
-  public void photoManager(File srcPath, String endWith, File dstPath) {
+  public void photoManager(File srcPath, String endWiths, File dstPath) {
     if (!srcPath.exists()) {
       log.warn("srcPath not exists");
       return;
@@ -53,14 +42,19 @@ public class PhotoService {
     } catch (Exception e) {
       log.error("path err", e);
     }
+    var endWithList = endWiths.split(",");
     var listFiles = srcPath.listFiles(new FilenameFilter() {
       @Override
       public boolean accept(File dir, String name) {
-        var isDir = new File(dir, name).isDirectory();
-        var isCr2 = name.toLowerCase().endsWith(endWith);
-        var isAccept = isDir || isCr2;
+        boolean isAccept = new File(dir, name).isDirectory();
+        for (String endWith : endWithList) {
+          if (isAccept) {
+            break;
+          }
+          isAccept = isAccept || name.toLowerCase().endsWith(endWith);
+        }
         if (!isAccept) {
-          // log.info("ignore file: {}", dir + "/" + name);
+          log.info("ignore file: {}", dir + "/" + name);
         }
         return isAccept;
       }
@@ -68,7 +62,7 @@ public class PhotoService {
     for (File file : listFiles) {
       if (file.isFile()) {
         try {
-          var zonedDateTimeOptional = getCreateDate(file);
+          var zonedDateTimeOptional = fileService.getCreateDate(file);
           if (zonedDateTimeOptional.isPresent()) {
             String year = String.valueOf(zonedDateTimeOptional.get().getYear());
             String month = String.valueOf(zonedDateTimeOptional.get().getMonthValue());
@@ -85,141 +79,89 @@ public class PhotoService {
                     + year + month + File.separator + year
                     + month
                     + day + File.separator + file.getName());
-            copyFile(file, dstFile);
+            fileService.copyFile(file, dstFile);
+          } else {
+            log.info("can not read create time: {}", file.getAbsolutePath());
           }
         } catch (Exception e) {
-          log.error("ImageMetadataReader err", e);
+          log.error("get create time err, file: {}", file.getAbsolutePath(), e);
         }
       } else if (file.isDirectory()) {
-        photoManager(file, endWith, dstPath);
+        photoManager(file, endWiths, dstPath);
       }
     }
   }
+
 
   /**
-   * copy文件到目标文件。如果存在，且md5一样，跳过；如果重名，写一个新的
+   * 找同级目录中相同的文件,保留文件名最短的，删除其它
    *
-   * @param srcFile
-   * @param dstFile
-   * @throws Exception
+   * @param path
    */
-  public void copyFile(File srcFile, File dstFile) throws Exception {
-    if (!srcFile.exists()) {
-      log.warn("srcFile not exist, file: {}", srcFile.getAbsolutePath());
-      return;
-    }
-    var dstPath = new File(dstFile.getParent());
-    if (!dstPath.exists()) {
-      dstPath.mkdirs();
-      log.info("mkdirs: {}", dstPath.getCanonicalPath());
-    }
-    // 目标文件存在的情况
-    if (dstFile.exists()) {
-      var srcMd5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(srcFile));
-      var dstMd5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(dstFile));
-      if (srcMd5.equals(dstMd5) && srcFile.length() == dstFile.length()) {
-        log.warn("srcFile is same with dstFile, srcFile: {}", srcFile.getAbsolutePath());
-        return;
-      } else {
-        while (true) {
-          var dstFileNewStr =
-              dstFile.getAbsolutePath() + "_" + ((Double) (Math.random() * 1000)).intValue();
-          var dstFileNew = new File(dstFileNewStr);
-          if (!dstFileNew.exists()) {
-            dstFile = dstFileNew;
-            break;
-          }
-        }
-      }
-    }
-    FileCopyUtils.copy(srcFile, dstFile);
-    log.info("copy {} to {}", srcFile.getCanonicalPath(), dstFile.getCanonicalPath());
-  }
-
-  private Map<String, List<String>> fileMap = new HashMap();
-
-  public void findSameFile(File path) {
+  public void deleteSameFile(File path) {
     if (!path.exists()) {
       log.warn("path not exists");
       return;
     }
-    var listFiles = path.listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        var isDir = new File(dir, name).isDirectory();
-        var isJpeg = name.toLowerCase().endsWith(".jpeg");
-        var isJpg = name.toLowerCase().endsWith(".jpg");
-        var isAccept = isDir || isJpeg || isJpg;
-        if (!isAccept) {
-          log.info("ignore file: {}", dir + "/" + name);
-        }
-        return isAccept;
-      }
-    });
+    var listFiles = path.listFiles();
+    Map<String, List<String>> fileMap = new HashMap();
+    // 采用两层结构，优化md5计算慢的问题
+    Map<Long, List<File>> sizeMap = new HashMap();
     for (File file : listFiles) {
       if (file.isFile()) {
-        try {
-          var md5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(file));
-          if (fileMap.containsKey(md5)) {
-            fileMap.get(md5).add(file.getCanonicalPath());
-            log.info("same md5: {}", md5);
-            for (String filePath : fileMap.get(md5)) {
-              log.warn("file: {}", filePath);
-            }
-          } else {
-            List list = new ArrayList();
-            list.add(file.getCanonicalPath());
-            fileMap.put(md5, list);
-          }
-        } catch (Exception e) {
-          log.error("file err", e);
+        var size = file.length();
+        if (sizeMap.containsKey(size)) {
+          sizeMap.get(size).add(file);
+        } else {
+          List<File> sameSizeFileList = new ArrayList<>();
+          sameSizeFileList.add(file);
+          sizeMap.put(size, sameSizeFileList);
         }
-      }
-      if (file.isDirectory()) {
-        findSameFile(file);
+      } else if (file.isDirectory()) {
+        deleteSameFile(file);
       }
     }
-  }
-
-  // 2022:01:15 10:55:09
-  private DateTimeFormatter dtfA = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
-  // Tue Jan 25 16:35:27 +08:00 2022
-  private DateTimeFormatter dtfB = DateTimeFormatter.ofPattern("EEE LLL dd HH:mm:ss zzz yyyy");
-
-  public Optional<ZonedDateTime> getCreateDate(File file) throws Exception {
-    if (file.exists()) {
-      var fileNameLowerCase = file.getAbsolutePath().toLowerCase();
-      if (fileNameLowerCase.endsWith(".jpg") || fileNameLowerCase.endsWith(".png")
-          || fileNameLowerCase.endsWith(".heic") || fileNameLowerCase.endsWith(".jpeg")) {
-        Metadata metadata = ImageMetadataReader.readMetadata(file);
-        for (Directory directory : metadata.getDirectories()) {
-          if ("Exif SubIFD".equals(directory.getName())) {
-            var desc = directory.getDescription(36867);
-            if (desc != null) {
-              LocalDateTime localDateTime = LocalDateTime.parse(desc, dtfA);
-              ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.systemDefault());
-              return Optional.of(zonedDateTime);
+    // 处理文件大小一致的
+    for (List<File> sameSizeFileList : sizeMap.values()) {
+      if (sameSizeFileList.size() >= 2) {
+        Map<String, List<File>> md5Map = new HashMap();
+        for (File sameSizeFile : sameSizeFileList) {
+          try {
+            var md5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(sameSizeFile));
+            if (md5Map.containsKey(md5)) {
+              md5Map.get(md5).add(sameSizeFile);
+            } else {
+              List<File> sameMd5FileList = new ArrayList<>();
+              sameMd5FileList.add(sameSizeFile);
+              md5Map.put(md5, sameMd5FileList);
+            }
+          } catch (Exception e) {
+            log.error("md5 err", e);
+          }
+        }
+        for (List<File> sameMd5FileList : md5Map.values()) {
+          if (sameMd5FileList.size() >= 2) {
+            log.info("same file list:");
+            int fileSize = Integer.MAX_VALUE;
+            File keepFile = null;
+            for (File sameMd5File : sameMd5FileList) {
+              String fileName = sameMd5File.getName();
+              if (fileName.length() < fileSize) {
+                fileSize = fileName.length();
+                keepFile = sameMd5File;
+              }
+            }
+            for (File sameMd5File : sameMd5FileList) {
+              if (keepFile.equals(sameMd5File)) {
+                log.info("keep   file: {}", sameMd5File.getAbsolutePath());
+              } else {
+                log.info("delete file: {}", sameMd5File.getAbsolutePath());
+                sameMd5File.delete();
+              }
             }
           }
         }
-      } else if (fileNameLowerCase.endsWith(".mov") || fileNameLowerCase.endsWith(".mp4")) {
-        Metadata metadata = ImageMetadataReader.readMetadata(file);
-        for (Directory directory : metadata.getDirectories()) {
-          if ("QuickTime".equals(directory.getName()) || "MP4".equals(directory.getName())) {
-            var desc = directory.getDescription(256);
-            if (desc != null) {
-              ZonedDateTime zonedDateTime = ZonedDateTime.parse(desc,
-                  dtfB);
-              return Optional.of(zonedDateTime);
-            }
-          }
-        }
-      } else {
-        log.warn("file endWith not match: {}", file.getAbsolutePath());
       }
-    } else {
-      log.warn("file not exist, file: {}", file.getAbsolutePath());
     }
-    return Optional.empty();
   }
 }

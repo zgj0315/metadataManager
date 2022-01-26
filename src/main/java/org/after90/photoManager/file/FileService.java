@@ -1,9 +1,15 @@
 package org.after90.photoManager.file;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
 import java.io.File;
-import java.io.FilenameFilter;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import org.springframework.util.DigestUtils;
@@ -13,51 +19,93 @@ import org.springframework.util.FileCopyUtils;
 @Slf4j
 public class FileService {
 
-  @Autowired
-  private FileRepository fileRepository;
-
-  public void findDuplicateFile(File pathScan) {
-    var listFiles = pathScan.listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        var isDir = new File(dir, name).isDirectory();
-        var isFile = new File(dir, name).isFile();
-        var isHide = name.toLowerCase().startsWith(".");
-        var isAccept = (isDir || isFile) && !isHide;
-        if (!isAccept) {
-          log.info("ignore file: {}", dir + "/" + name);
+  /**
+   * copy文件到目标文件。如果存在，且md5一样，跳过；如果重名，写一个新的
+   *
+   * @param srcFile
+   * @param dstFile
+   * @throws Exception
+   */
+  public void copyFile(File srcFile, File dstFile) throws Exception {
+    if (!srcFile.exists()) {
+      log.warn("srcFile not exist, file: {}", srcFile.getAbsolutePath());
+      return;
+    }
+    var dstPath = new File(dstFile.getParent());
+    if (!dstPath.exists()) {
+      dstPath.mkdirs();
+    }
+    // 目标文件存在的情况
+    if (dstFile.exists()) {
+      // 先看看文件大小是否一致，如果一致，看看md5是否一致
+      if (srcFile.length() == dstFile.length()) {
+        var srcMd5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(srcFile));
+        var dstMd5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(dstFile));
+        if (srcMd5.equals(dstMd5)) {
+          log.warn("same file");
+          log.info("srcFile: {}", srcFile.getAbsolutePath());
+          log.info("dstFile: {}", dstFile.getAbsolutePath());
+          return;
         }
-        return isAccept;
       }
-    });
-    for (File file : listFiles) {
-      if (file.isDirectory()) {
-        findDuplicateFile(file);
-      }
-      if (file.isFile()) {
-        var length = file.length();
-        if (length > 0) {
-          try {
-            var md5 = DigestUtils.md5DigestAsHex(FileCopyUtils.copyToByteArray(file));
-            var path = file.getAbsolutePath();
-            var fileDOList = fileRepository.findByMd5(md5);
-            if (!fileDOList.isEmpty()) {
-              log.warn("duplicate file: {}", path);
-              fileDOList.forEach(_file -> {
-                log.warn("duplicate file: {}", _file.getPath());
-              });
-              log.info("");
-            }
-            FileDO fileDO = new FileDO();
-            fileDO.setPath(path);
-            fileDO.setMd5(md5);
-            fileDO.setLength(length);
-            fileRepository.save(fileDO);
-          } catch (Exception e) {
-            log.error("read file err", e);
-          }
+      while (true) {
+        var dstFileNewStr =
+            dstFile.getAbsolutePath() + "_" + ((Double) (Math.random() * 1000)).intValue();
+        var dstFileNew = new File(dstFileNewStr);
+        if (!dstFileNew.exists()) {
+          dstFile = dstFileNew;
+          break;
         }
       }
     }
+    FileCopyUtils.copy(srcFile, dstFile);
+    log.info("copy file, {} to {}", srcFile.getCanonicalPath(), dstFile.getCanonicalPath());
+  }
+
+  // 2022:01:15 10:55:09
+  private DateTimeFormatter dtfA = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
+  // Tue Jan 25 16:35:27 +08:00 2022
+  private DateTimeFormatter dtfB = DateTimeFormatter.ofPattern("EEE LLL dd HH:mm:ss zzz yyyy");
+
+  public Optional<ZonedDateTime> getCreateDate(File file) {
+    if (file.exists()) {
+      var fileNameLowerCase = file.getAbsolutePath().toLowerCase();
+      try {
+        if (fileNameLowerCase.endsWith(".jpg") || fileNameLowerCase.endsWith(".png")
+            || fileNameLowerCase.endsWith(".heic") || fileNameLowerCase.endsWith(".jpeg")) {
+          Metadata metadata = ImageMetadataReader.readMetadata(file);
+          for (Directory directory : metadata.getDirectories()) {
+            if ("Exif SubIFD".equals(directory.getName())) {
+              var desc = directory.getDescription(36867);
+              if (desc != null) {
+                LocalDateTime localDateTime = LocalDateTime.parse(desc, dtfA);
+                ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime,
+                    ZoneId.systemDefault());
+                return Optional.of(zonedDateTime);
+              }
+            }
+          }
+        } else if (fileNameLowerCase.endsWith(".mov") || fileNameLowerCase.endsWith(".mp4")) {
+          Metadata metadata = ImageMetadataReader.readMetadata(file);
+          for (Directory directory : metadata.getDirectories()) {
+            if ("QuickTime".equals(directory.getName()) || "MP4".equals(directory.getName())) {
+              var desc = directory.getDescription(256);
+              if (desc != null) {
+                ZonedDateTime zonedDateTime = ZonedDateTime.parse(desc,
+                    dtfB);
+                return Optional.of(zonedDateTime);
+              }
+            }
+          }
+        } else {
+          log.warn("file endWith not match: {}", file.getAbsolutePath());
+        }
+      } catch (Exception e) {
+        log.error("get create time err, file: {}", file.getAbsolutePath(), e);
+      }
+    } else {
+      log.warn("file not exist, file: {}", file.getAbsolutePath());
+    }
+    return Optional.empty();
   }
 }
