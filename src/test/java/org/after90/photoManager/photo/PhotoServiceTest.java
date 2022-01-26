@@ -41,12 +41,4 @@ class PhotoServiceTest {
     // photoService.photoManager(new File("/Volumes/home/Photos/Moments/Mobile"), ".mp4,mov",
     //    new File("/Volumes/video/export"));
   }
-
-  @Test
-  @Disabled
-  void deleteSameFile() {
-    // photoService.deleteSameFile(new File("/Volumes/photo/original"));
-    // photoService.deleteSameFile(new File("/Volumes/photo/export"));
-    // photoService.deleteSameFile(new File("/Volumes/video/export"));
-  }
 }

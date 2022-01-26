@@ -17,11 +17,11 @@ class FileServiceTest {
   @Test
   @Disabled
   void copyFile() throws Exception {
-    File srcFile = new File("/Users/zhaoguangjian/tmp/copyFile/src/abc.txt");
-    File dstFile = new File("/Users/zhaoguangjian/tmp/copyFile/dst/abc.txt");
-    dstFile.delete();
+    File srcFile = new File("/Volumes/photo/photo/2012/20120519香山骑行/IMG_2535.CR2");
+    File dstFile = new File("/Volumes/photo/original/2012/201205/20120519/IMG_2535.CR2");
     fileService.copyFile(srcFile, dstFile);
   }
+
 
   @Test
   @Disabled
@@ -45,5 +45,13 @@ class FileServiceTest {
       log.info("end file: {}", file.getAbsolutePath());
     }
     log.info("finish");
+  }
+
+  @Test
+  @Disabled
+  void deleteSameFile() {
+    // fileService.deleteSameFile(new File("/Volumes/photo/original"));
+    // fileService.deleteSameFile(new File("/Volumes/photo/export"));
+    // fileService.deleteSameFile(new File("/Volumes/video/export"));
   }
 }
