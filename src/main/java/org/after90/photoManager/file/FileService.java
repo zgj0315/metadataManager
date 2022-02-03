@@ -4,6 +4,7 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -116,11 +117,24 @@ public class FileService {
    * @param path
    */
   public void deleteSameFile(File path) {
-    if (!path.exists()) {
+    log.info("path: {}", path.getAbsolutePath());
+    if (!path.exists() && path.isDirectory()) {
       log.warn("path not exists");
       return;
     }
-    var listFiles = path.listFiles();
+    var listFiles = path.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        String[] notStartWithList = {"."};
+        for (String startWith : notStartWithList) {
+          if (name.toLowerCase().startsWith(startWith)) {
+            log.info("ignore file: {}/{}", dir, name);
+            return false;
+          }
+        }
+        return true;
+      }
+    });
     Map<String, List<String>> fileMap = new HashMap();
     // 采用两层结构，优化md5计算慢的问题
     Map<Long, List<File>> sizeMap = new HashMap();

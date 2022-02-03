@@ -50,6 +50,7 @@ class FileServiceTest {
   @Test
   @Disabled
   void deleteSameFile() {
+    // fileService.deleteSameFile(new File("/Volumes/porn"));
     // fileService.deleteSameFile(new File("/Volumes/photo/original"));
     // fileService.deleteSameFile(new File("/Volumes/photo/export"));
     // fileService.deleteSameFile(new File("/Volumes/video/export"));

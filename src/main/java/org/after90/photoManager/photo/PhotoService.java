@@ -2,16 +2,10 @@ package org.after90.photoManager.photo;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.after90.photoManager.file.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
-import org.springframework.util.FileCopyUtils;
 
 @Service
 @Slf4j
@@ -46,17 +40,27 @@ public class PhotoService {
     var listFiles = srcPath.listFiles(new FilenameFilter() {
       @Override
       public boolean accept(File dir, String name) {
-        boolean isAccept = new File(dir, name).isDirectory();
-        for (String endWith : endWithList) {
-          if (isAccept) {
-            break;
+        String[] notStartWithList = {"."};
+        for (String startWith : notStartWithList) {
+          if (name.toLowerCase().startsWith(startWith)) {
+            log.info("ignore file: {}/{}", dir, name);
+            return false;
           }
-          isAccept = isAccept || name.toLowerCase().endsWith(endWith);
         }
-        if (!isAccept) {
-          log.info("ignore file: {}", dir + "/" + name);
+        if (new File(dir, name).isDirectory()) {
+          return true;
         }
-        return isAccept;
+
+        if (new File(dir, name).isDirectory()) {
+          return true;
+        }
+        for (String endWith : endWithList) {
+          if (name.toLowerCase().endsWith(endWith)) {
+            return true;
+          }
+        }
+        log.info("ignore file: {}/{}", dir, name);
+        return false;
       }
     });
     for (File file : listFiles) {
