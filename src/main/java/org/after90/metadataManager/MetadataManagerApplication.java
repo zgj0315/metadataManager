@@ -21,9 +21,9 @@ public class MetadataManagerApplication {
       // run
     } else {
       log.info("\n\n\nargs illegal, input like this:"
-          + "\neg: java -jar photoManager-1.0.jar copy /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
-          + "\neg: java -jar photoManager-1.0.jar move /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
-          + "\neg: java -jar photoManager-1.0.jar deduplicate /Users/zhaoguangjian/tmp/output"
+          + "\neg: java -jar metadataManager-1.1.jar copy /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
+          + "\neg: java -jar metadataManager-1.1.jar move /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
+          + "\neg: java -jar metadataManager-1.1.jar deduplicate /Users/zhaoguangjian/tmp/output"
           + "\n\n\n");
       return;
     }

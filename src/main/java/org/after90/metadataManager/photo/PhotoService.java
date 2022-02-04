@@ -85,6 +85,7 @@ public class PhotoService {
                     + day + File.separator + file.getName());
             fileService.copyFile(file, dstFile);
             if (srcDelete) {
+              log.info("delete file: {}", file.getAbsolutePath());
               file.delete();
             }
           } else {

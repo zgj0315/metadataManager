@@ -26,7 +26,7 @@ class FileServiceTest {
   @Test
   @Disabled
   void getCreateDate() throws Exception {
-    File path = new File("/Users/zhaoguangjian/tmp/input/2022-01/");
+    File path = new File("/Users/zhaogj/tmp/metadataManager/src/photoiCloud20210623");
     for (File file : path.listFiles()) {
       log.info("begin file: {}", file.getAbsolutePath());
       if (file.isFile()) {
@@ -45,6 +45,14 @@ class FileServiceTest {
       log.info("end file: {}", file.getAbsolutePath());
     }
     log.info("finish");
+  }
+
+  @Test
+  @Disabled
+  void getCreateDateTest() throws Exception {
+    log.info("create time: {}", fileService.getCreateDate(
+        new File("/Users/zhaogj/tmp/metadataManager/src/photoiCloud20210623/IMG_1391.JPG")));
+
   }
 
   @Test

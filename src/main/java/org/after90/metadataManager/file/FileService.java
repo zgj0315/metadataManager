@@ -3,6 +3,7 @@ package org.after90.metadataManager.file;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.time.LocalDateTime;
@@ -76,12 +77,30 @@ public class FileService {
             || fileNameLowerCase.endsWith(".cr2")) {
           Metadata metadata = ImageMetadataReader.readMetadata(file);
           for (Directory directory : metadata.getDirectories()) {
+            // log.info("");
+            // log.info("dir name: {}", directory.getName());
+            // for (Tag tag : directory.getTags()) {
+            //   log.info("type: {}, name: {}, desc: {}", tag.getTagType(), tag.getTagName(),
+            //       tag.getDescription());
+            // }
+
             if ("Exif SubIFD".equals(directory.getName())) {
               var desc = directory.getDescription(36867);
               if (desc != null) {
                 LocalDateTime localDateTime = LocalDateTime.parse(desc, dtfA);
                 ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime,
                     ZoneId.systemDefault());
+                // log.info("create date: {}", zonedDateTime);
+                return Optional.of(zonedDateTime);
+              }
+            } else if ("File".equals(directory.getName())) {
+              // 没有create time的情况下，使用modified date
+              var desc = directory.getDescription(3);
+              if (desc != null) {
+                LocalDateTime localDateTime = LocalDateTime.parse(desc, dtfB);
+                ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime,
+                    ZoneId.systemDefault());
+                // log.info("last modified date: {}", zonedDateTime);
                 return Optional.of(zonedDateTime);
               }
             }
@@ -107,6 +126,7 @@ public class FileService {
     } else {
       log.warn("file not exist, file: {}", file.getAbsolutePath());
     }
+    log.warn("can not read create time: {}", file.getAbsolutePath());
     return Optional.empty();
   }
 
@@ -117,7 +137,7 @@ public class FileService {
    * @param path
    */
   public void deleteSameFile(File path) {
-    log.info("path: {}", path.getAbsolutePath());
+    // log.info("path: {}", path.getAbsolutePath());
     if (!path.exists() && path.isDirectory()) {
       log.warn("path not exists");
       return;
