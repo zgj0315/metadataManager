@@ -1,4 +1,4 @@
-package org.after90.photoManager.utils;
+package org.after90.metadataManager.utils;
 
 public class ParaUtils {
 

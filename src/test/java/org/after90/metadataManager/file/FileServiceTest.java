@@ -1,4 +1,4 @@
-package org.after90.photoManager.file;
+package org.after90.metadataManager.file;
 
 import java.io.File;
 import lombok.extern.slf4j.Slf4j;

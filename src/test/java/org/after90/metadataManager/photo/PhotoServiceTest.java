@@ -1,6 +1,5 @@
-package org.after90.photoManager.photo;
+package org.after90.metadataManager.photo;
 
-import java.io.File;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

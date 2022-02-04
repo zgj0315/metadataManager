@@ -1,4 +1,4 @@
-package org.after90.photoManager.file;
+package org.after90.metadataManager.file;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;

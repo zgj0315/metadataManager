@@ -10,8 +10,8 @@
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
   <groupId>org.after90</groupId>
-  <artifactId>photoManager</artifactId>
-  <version>1.0</version>
+  <artifactId>metadataManager</artifactId>
+  <version>1.1</version>
   <name>PhotoManager</name>
   <description>Photo Manager</description>
   <properties>

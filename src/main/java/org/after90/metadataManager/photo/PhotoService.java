@@ -1,9 +1,9 @@
-package org.after90.photoManager.photo;
+package org.after90.metadataManager.photo;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import lombok.extern.slf4j.Slf4j;
-import org.after90.photoManager.file.FileService;
+import org.after90.metadataManager.file.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +21,7 @@ public class PhotoService {
    * @param endWiths 文件后缀，逗号分隔
    * @param dstPath  输出目录
    */
-  public void photoManager(File srcPath, String endWiths, File dstPath) {
+  public void photoManager(File srcPath, String endWiths, File dstPath, boolean srcDelete) {
     if (!srcPath.exists()) {
       log.warn("srcPath not exists");
       return;
@@ -84,6 +84,9 @@ public class PhotoService {
                     + month
                     + day + File.separator + file.getName());
             fileService.copyFile(file, dstFile);
+            if (srcDelete) {
+              file.delete();
+            }
           } else {
             log.info("can not read create time: {}", file.getAbsolutePath());
           }
@@ -91,7 +94,7 @@ public class PhotoService {
           log.error("get create time err, file: {}", file.getAbsolutePath(), e);
         }
       } else if (file.isDirectory()) {
-        photoManager(file, endWiths, dstPath);
+        photoManager(file, endWiths, dstPath, srcDelete);
       }
     }
   }

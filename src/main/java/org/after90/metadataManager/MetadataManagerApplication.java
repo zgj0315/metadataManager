@@ -1,14 +1,14 @@
-package org.after90.photoManager;
+package org.after90.metadataManager;
 
 import lombok.extern.slf4j.Slf4j;
-import org.after90.photoManager.utils.ParaUtils;
+import org.after90.metadataManager.utils.ParaUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.ApplicationPidFileWriter;
 
 @SpringBootApplication
 @Slf4j
-public class PhotoManagerApplication {
+public class MetadataManagerApplication {
 
   public static void main(String[] args) {
     log.info("OS name: {}, arch: {}, version: {}", System.getProperty("os.name"),
@@ -22,13 +22,14 @@ public class PhotoManagerApplication {
     } else {
       log.info("\n\n\nargs illegal, input like this:"
           + "\neg: java -jar photoManager-1.0.jar copy /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
-          + "\neg: java -jar photoManager-1.0.jar delete /Users/zhaoguangjian/tmp/output"
+          + "\neg: java -jar photoManager-1.0.jar move /Users/zhaoguangjian/tmp/input .jpg,.jpeg /Users/zhaoguangjian/tmp/output"
+          + "\neg: java -jar photoManager-1.0.jar deduplicate /Users/zhaoguangjian/tmp/output"
           + "\n\n\n");
       return;
     }
     ParaUtils.TESTING = false;
-    SpringApplication springApplication = new SpringApplication(PhotoManagerApplication.class);
-    springApplication.addListeners(new ApplicationPidFileWriter("photoManagerApplication.pid"));
+    SpringApplication springApplication = new SpringApplication(MetadataManagerApplication.class);
+    springApplication.addListeners(new ApplicationPidFileWriter("metadataManagerApplication.pid"));
     springApplication.run(args);
   }
 
